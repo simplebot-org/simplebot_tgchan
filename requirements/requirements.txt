@@ -1,0 +1,11 @@
+simplebot>=4.0.0
+SQLAlchemy>=1.4.39
+Telethon>=1.25.4
+# to speed up encryption
+cryptg>=0.3.1
+# resize large images when sending photos
+Pillow>=9.2.0
+# to download WebDocument media files
+aiohttp>=3.8.3
+# to extract metadata from files when sending documents
+hachoir>=3.1.3
