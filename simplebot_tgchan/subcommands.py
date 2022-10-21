@@ -5,6 +5,7 @@ from simplebot import DeltaBot
 from .util import get_client, set_config, sync
 
 
+# pylama:ignore=C0103
 class login:
     """Login on Telegram."""
 
