@@ -43,12 +43,11 @@ Add your e-mail address as the bot administrator so you have access to the admin
 
     simplebot -a bot@example.com admin -a me@example.com
 
-Then you must provide a Telegram account for the bot to use, to start session in Telegram::
+Then you must provide a phone number for the bot to use, to start session in Telegram::
 
     simplebot -a bot@example.com login
 
-After entering phone number and the verification code you received in Telegram or via SMS, start the
-bot::
+After entering the verification code you received in Telegram or via SMS, start the bot::
 
     simplebot -a bot@example.com serve
 
