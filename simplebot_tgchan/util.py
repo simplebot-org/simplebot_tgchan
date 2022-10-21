@@ -5,6 +5,8 @@ from simplebot import DeltaBot
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
+_scope = __name__.split(".")[0]
+
 
 def sync(func):
     @wraps(func)
@@ -15,16 +17,15 @@ def sync(func):
 
 
 def getdefault(bot: DeltaBot, key: str, value: str = None) -> str:
-    scope = __name__.split(".")[0]
-    val = bot.get(key, scope=scope)
+    val = bot.get(key, scope=_scope)
     if val is None and value is not None:
-        bot.set(key, value, scope=scope)
+        bot.set(key, value, scope=_scope)
         val = value
     return val
 
 
 def set_config(bot: DeltaBot, key: str, value: str = None) -> None:
-    bot.set(key, value, scope=__name__.split(".")[0])
+    bot.set(key, value, scope=_scope)
 
 
 def get_client(bot: DeltaBot) -> TelegramClient:
