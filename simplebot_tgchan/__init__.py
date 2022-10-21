@@ -12,7 +12,7 @@ from simplebot.bot import Replies
 from telethon import TelegramClient
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
-from telethon.utils import get_peer_id
+from telethon.tl.types import PeerChannel
 
 from .orm import Channel, Subscription, init, session_scope
 from .subcommands import login
@@ -189,7 +189,7 @@ async def check_channels(bot: DeltaBot) -> None:
 
 
 async def check_channel(bot: DeltaBot, client: TelegramClient, dbchan: Channel) -> None:
-    channel = await client.get_entity(get_peer_id(dbchan.id))
+    channel = await client.get_entity(PeerChannel(dbchan.id))
     dbchan.title = channel.title
     messages = list(
         reversed(await client.get_messages(channel, min_id=dbchan.last_msg, limit=20))
