@@ -30,6 +30,9 @@ def deltabot_init(bot: DeltaBot) -> None:
     getdefault(bot, "api_hash", "")
     getdefault(bot, "delay", str(60 * 5))
     getdefault(bot, "max_size", str(1024**2 * 5))
+    allow_sub = getdefault(bot, "allow_subscriptions", "1") == "1"
+    bot.commands.register(func=sub, admin=not allow_sub)
+    bot.commands.register(func=unsub, admin=not allow_sub)
 
 
 @simplebot.hookimpl
@@ -60,7 +63,6 @@ def deltabot_member_removed(
                 session.delete(channel)
 
 
-@simplebot.command(admin=True)
 def sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> None:
     """Subscribe chat to the given Telegram channel."""
     if not getdefault(bot, "session"):
@@ -112,7 +114,6 @@ async def _sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) 
         await client.disconnect()
 
 
-@simplebot.command(admin=True)
 def unsub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> None:
     """Unsubscribe chat from the given Telegram channel.
 
