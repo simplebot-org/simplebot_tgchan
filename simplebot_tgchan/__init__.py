@@ -152,7 +152,7 @@ async def _unsub(
             text = ""
             for subs in session.query(Subscription).filter_by(chat_id=message.chat.id):
                 chan = str(subs.chan_id).replace("-", "n")
-                text += f"{subs.channel.title!r}\n/unsub_{chan}\n\n"
+                text += f"{subs.channel.title}\n/unsub_{chan}\n\n"
             if not text:
                 text = "❌ No subscriptions in this chat"
             replies.add(text=text)
