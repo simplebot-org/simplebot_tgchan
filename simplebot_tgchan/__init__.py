@@ -9,7 +9,7 @@ import simplebot
 from deltachat import Chat, Contact, Message
 from simplebot import DeltaBot
 from simplebot.bot import Replies
-from telethon import TelegramClient, events
+from telethon import TelegramClient
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.types import PeerChannel
@@ -46,9 +46,7 @@ def deltabot_start(bot: DeltaBot) -> None:
 
 
 @simplebot.hookimpl
-def deltabot_member_removed(
-    bot: DeltaBot, chat: Chat, contact: Contact, replies: Replies
-) -> None:
+def deltabot_member_removed(bot: DeltaBot, chat: Chat, contact: Contact) -> None:
     if bot.self_contact != contact and len(chat.get_contacts()) > 1:
         return
 
@@ -199,14 +197,14 @@ async def check_channel(bot: DeltaBot, client: TelegramClient, dbchan: Channel) 
     bot.logger.debug(f"Channel {channel.title!r} has {len(messages)} new messages")
     for message in messages:
         try:
-            await tg2dc(bot, client, message, dbchan)
+            await tg2dc(bot, message, dbchan)
         except Exception as ex:
             bot.logger.exception(ex)
         dbchan.last_msg = message.id
     await client.send_read_acknowledge(channel, messages)
 
 
-async def tg2dc(bot: DeltaBot, client: TelegramClient, msg, dbchan: Channel) -> None:
+async def tg2dc(bot: DeltaBot, msg, dbchan: Channel) -> None:
     if msg.text is None:
         return
     replies = Replies(bot, bot.logger)

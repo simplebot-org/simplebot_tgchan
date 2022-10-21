@@ -1,3 +1,5 @@
+"""extra command line subcommands for simplebot's CLI"""
+
 from simplebot import DeltaBot
 
 from .util import get_client, set_config, sync

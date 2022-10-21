@@ -1,3 +1,5 @@
+"""Utilities"""
+
 import asyncio
 from functools import wraps
 
@@ -5,7 +7,7 @@ from simplebot import DeltaBot
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-_scope = __name__.split(".")[0]
+_scope = __name__.split(".", maxsplit=1)[0]
 
 
 def sync(func):
