@@ -17,9 +17,19 @@ _Session = sessionmaker()
 _lock = Lock()
 
 
+class Channel(Base):
+    id = Column(Integer, primary_key=True)
+    title = Column(String(1000))
+    last_msg = Column(Integer)
+
+    subscriptions = relationship(
+        "Subscription", backref="channel", cascade="all, delete, delete-orphan"
+    )
+
+
 class Subscription(Base):
     chat_id = Column(Integer, primary_key=True)
-    chan = Column(String(1000), primary_key=True)
+    chan_id = Column(Integer, ForeignKey("channel.id"), primary_key=True)
     filter = Column(String(1000))
 
 

@@ -9,11 +9,12 @@ import simplebot
 from deltachat import Chat, Contact, Message
 from simplebot import DeltaBot
 from simplebot.bot import Replies
-from telethon import events
+from telethon import TelegramClient, events
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
+from telethon.tl.types import PeerChannel
 
-from .orm import Subscription, init, session_scope
+from .orm import Channel, Subscription, init, session_scope
 from .subcommands import login
 from .util import get_client, getdefault, set_config, sync
 
@@ -28,6 +29,7 @@ def deltabot_init(bot: DeltaBot) -> None:
     getdefault(bot, "api_id", "")
     getdefault(bot, "api_hash", "")
     getdefault(bot, "delay", str(60 * 5))
+    getdefault(bot, "max_size", str(1024**2 * 5))
 
 
 @simplebot.hookimpl
@@ -48,27 +50,33 @@ def deltabot_member_removed(
         return
 
     with session_scope() as session:
-        session.query(Subscription).filter_by(chat_id=chat.id).delete()
+        for subs in session.query(Subscription).filter_by(chat_id=chat.id):
+            channel = subs.channel
+            session.delete(subs)
+            if not channel.subscriptions:
+                bot.logger.debug(
+                    f"Removing channel without subscriptions: {channel.id}"
+                )
+                session.delete(channel)
 
 
 @simplebot.command(admin=True)
 def sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> None:
     """Subscribe chat to the given Telegram channel."""
-    _sub(bot, payload, message, replies)
+    if not getdefault(bot, "session"):
+        replies.add(text="❌ You must log in first", quote=message)
+    elif not payload:
+        replies.add(text="❌ You must provide a channel link or name", quote=message)
+    elif not message.chat.is_multiuser():
+        replies.add(
+            text="❌ Subscribing is supported in group chats only", quote=message
+        )
+    else:
+        _sub(bot, payload, message, replies)
 
 
 @sync
 async def _sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> None:
-    if not getdefault(bot, "session"):
-        replies.add(text="❌ You must log in first", quote=message)
-        return
-
-    if not message.chat.is_multiuser():
-        replies.add(
-            text="❌ Subscribing is supported in group chats only", quote=message
-        )
-        return
-
     args = payload.split(maxsplit=1)
     chan = args[0].rsplit("/", maxsplit=1)[-1]
     if "/joinchat/" in args[0]:
@@ -81,12 +89,22 @@ async def _sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) 
     try:
         client = get_client(bot)
         await client.connect()
-        await client(request(chan))
+        channel = (await client(request(chan))).chats[0]
+        assert channel.broadcast, "Invalid channel"
+        set_config(bot, "session", client.session.save())
         with session_scope() as session:
+            if not session.query(Channel).filter_by(id=channel.id).first():
+                msgs = await client.get_messages(channel, limit=1)
+                msg_id = msgs[0].id if msgs else 0
+                session.add(
+                    Channel(id=channel.id, title=channel.title, last_msg=msg_id)
+                )
             session.add(
-                Subscription(chat_id=message.chat.id, chan=chan, filter=filter_)
+                Subscription(
+                    chat_id=message.chat.id, chan_id=channel.id, filter=filter_
+                )
             )
-        replies.add(text=f"✔️ Subscribed to {chan}")
+        replies.add(text=f"✔️ Subscribed to {channel.title!r}")
     except Exception as ex:
         bot.logger.exception(ex)
         replies.add(text=f"❌ Error: {ex}", quote=message)
@@ -96,7 +114,10 @@ async def _sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) 
 
 @simplebot.command(admin=True)
 def unsub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> None:
-    """Unsubscribe chat from the given Telegram channel."""
+    """Unsubscribe chat from the given Telegram channel.
+
+    If no channel is given, list all channels that can be unsubscribed in the current chat.
+    """
     _unsub(bot, payload, message, replies)
 
 
@@ -106,20 +127,32 @@ async def _unsub(
 ) -> None:
     with session_scope() as session:
         if payload:
+            chan_id = int(payload.replace("n", "-"))
             subs = (
                 session.query(Subscription)
-                .filter_by(chat_id=message.chat.id, chan=payload)
+                .filter_by(chat_id=message.chat.id, chan_id=chan_id)
                 .first()
             )
             if subs:
+                channel = subs.channel
+                title = channel.title
                 session.delete(subs)
-                replies.add(text=f"✔️ Unsubscribed from {payload}")
+                if not channel.subscriptions:
+                    bot.logger.debug(
+                        f"Removing channel without subscriptions: {channel.id}"
+                    )
+                    session.delete(channel)
+                replies.add(text=f"✔️ Unsubscribed from {title!r}")
             else:
-                replies.add(text=f"❌ Error: chat is not subscribed to {payload}")
+                replies.add(
+                    text="❌ Error: chat is not subscribed to that channel",
+                    quote=message,
+                )
         else:
             text = ""
             for subs in session.query(Subscription).filter_by(chat_id=message.chat.id):
-                text += f"/unsub_{subs.chan}\n\n"
+                chan = str(subs.chan_id).replace("-", "n")
+                text += f"{subs.channel.title!r}\n/unsub_{chan}\n\n"
             if not text:
                 text = "❌ No subscriptions in this chat"
             replies.add(text=text)
@@ -134,57 +167,61 @@ async def listen_to_telegram(bot: DeltaBot) -> None:
     while True:
         bot.logger.debug("Checking Telegram")
         try:
-            client = get_client(bot)
-            await client.connect()
-            dialogs = await client.get_dialogs()
-            for dialog in reversed(dialogs):
-                if (
-                    dialog.unread_count <= 0
-                    or not dialog.is_channel
-                    or dialog.is_group
-                    or not dialog.entity.username
-                ):
-                    continue
-                messages = list(
-                    reversed(
-                        await client.get_messages(dialog, limit=dialog.unread_count)
-                    )
-                )
-                if not messages:
-                    continue
-                bot.logger.debug(
-                    f"Channel {dialog.name!r} has {len(messages)} new messages"
-                )
-                with session_scope() as session:
-                    replies = Replies(bot, bot.logger)
-                    for msg in messages:
-                        if msg.text is None:
-                            continue
-                        args = dict(
-                            text=msg.text,
-                            sender=dialog.title or dialog.name or "Unknown",
-                        )
-                        with TemporaryDirectory() as tempdir:
-                            if msg.file and msg.file.size < 1024**2 * 5:
-                                args["filename"] = await msg.download_media(tempdir)
-                            if not msg.text and not args.get("filename"):
-                                continue
-                            for subs in session.query(Subscription).filter_by(
-                                chan=dialog.entity.username
-                            ):
-                                if subs.filter in msg.text:
-                                    try:
-                                        replies.add(
-                                            **args, chat=bot.get_chat(int(subs.chat_id))
-                                        )
-                                        replies.send_reply_messages()
-                                    except Exception as ex:
-                                        bot.logger.exception(ex)
-                await client.send_read_acknowledge(dialog, messages)
+            await check_channels(bot)
         except Exception as ex:
             bot.logger.exception(ex)
-        finally:
-            await client.disconnect()
         delay = int(getdefault(bot, "delay"))
         bot.logger.debug(f"Done checking Telegram, sleeping for {delay} seconds...")
         await asyncio.sleep(delay)
+
+
+async def check_channels(bot: DeltaBot) -> None:
+    try:
+        client = get_client(bot)
+        await client.connect()
+        with session_scope() as session:
+            for chan in session.query(Channel):
+                try:
+                    await check_channel(bot, client, chan)
+                except Exception as ex:
+                    bot.logger.exception(ex)
+    finally:
+        await client.disconnect()
+
+
+async def check_channel(bot: DeltaBot, client: TelegramClient, dbchan: Channel) -> None:
+    channel = await client.get_entity(PeerChannel(dbchan.id))
+    dbchan.title = channel.title
+    messages = list(
+        reversed(await client.get_messages(channel, min_id=dbchan.last_msg, limit=20))
+    )
+    bot.logger.debug(f"Channel {channel.title!r} has {len(messages)} new messages")
+    for message in messages:
+        try:
+            await tg2dc(bot, client, message, dbchan)
+        except Exception as ex:
+            bot.logger.exception(ex)
+        dbchan.last_msg = message.id
+    await client.send_read_acknowledge(channel, messages)
+
+
+async def tg2dc(bot: DeltaBot, client: TelegramClient, msg, dbchan: Channel) -> None:
+    if msg.text is None:
+        return
+    replies = Replies(bot, bot.logger)
+    args = dict(
+        text=msg.text,
+        sender=dbchan.title or "Unknown",
+    )
+    with TemporaryDirectory() as tempdir:
+        if msg.file and msg.file.size <= int(getdefault(bot, "max_size")):
+            args["filename"] = await msg.download_media(tempdir)
+        if not msg.text and not args.get("filename"):
+            return
+        for subs in dbchan.subscriptions:
+            if subs.filter in msg.text:
+                try:
+                    replies.add(**args, chat=bot.get_chat(int(subs.chat_id)))
+                    replies.send_reply_messages()
+                except Exception as ex:
+                    bot.logger.exception(ex)
