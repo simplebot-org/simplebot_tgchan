@@ -50,6 +50,7 @@ def deltabot_member_removed(bot: DeltaBot, chat: Chat, contact: Contact) -> None
     if bot.self_contact != contact and len(chat.get_contacts()) > 1:
         return
 
+    empty_channels = []
     with session_scope() as session:
         for subs in session.query(Subscription).filter_by(chat_id=chat.id):
             channel = subs.channel
@@ -58,7 +59,11 @@ def deltabot_member_removed(bot: DeltaBot, chat: Chat, contact: Contact) -> None
                 bot.logger.debug(
                     f"Removing channel without subscriptions: {channel.id}"
                 )
+                empty_channels.append(channel.id)
                 session.delete(channel)
+
+    if empty_channels:
+        leave_channels(bot, *empty_channels)
 
 
 def sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> None:
@@ -117,13 +122,7 @@ def unsub(bot: DeltaBot, payload: str, message: Message, replies: Replies) -> No
 
     If no channel is given, list all channels that can be unsubscribed in the current chat.
     """
-    _unsub(bot, payload, message, replies)
-
-
-@sync
-async def _unsub(
-    bot: DeltaBot, payload: str, message: Message, replies: Replies
-) -> None:
+    empty_channels = []
     with session_scope() as session:
         if payload:
             chan_id = int(payload.replace("n", "-"))
@@ -140,6 +139,7 @@ async def _unsub(
                     bot.logger.debug(
                         f"Removing channel without subscriptions: {channel.id}"
                     )
+                    empty_channels.append(channel.id)
                     session.delete(channel)
                 replies.add(text=f"✔️ Unsubscribed from {title!r}")
             else:
@@ -155,6 +155,9 @@ async def _unsub(
             if not text:
                 text = "❌ No subscriptions in this chat"
             replies.add(text=text)
+
+    if empty_channels:
+        leave_channels(bot, *empty_channels)
 
 
 @sync
@@ -224,3 +227,16 @@ async def tg2dc(bot: DeltaBot, msg, dbchan: Channel) -> None:
                     replies.send_reply_messages()
                 except Exception as ex:
                     bot.logger.exception(ex)
+
+
+@sync
+async def leave_channels(bot, *args) -> None:
+    try:
+        client = get_client(bot)
+        await client.connect()
+        for chan_id in args:
+            await client.delete_dialog(PeerChannel(chan_id))
+    except Exception as ex:
+        bot.logger.exception(ex)
+    finally:
+        await client.disconnect()
