@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import time
 from tempfile import TemporaryDirectory
 from threading import Thread
 
@@ -171,12 +172,16 @@ async def listen_to_telegram(bot: DeltaBot) -> None:
 
     while True:
         bot.logger.debug("Checking Telegram")
+        start = time.time()
         try:
             await check_channels(bot)
         except Exception as ex:
             bot.logger.exception(ex)
-        delay = int(getdefault(bot, "delay"))
-        bot.logger.debug(f"Done checking Telegram, sleeping for {delay} seconds...")
+        elapsed = time.time() - start
+        delay = max(int(getdefault(bot, "delay")) - elapsed, 30)
+        bot.logger.debug(
+            f"Done checking Telegram after {elapsed} seconds, sleeping for {delay} seconds..."
+        )
         await asyncio.sleep(delay)
 
 
@@ -185,9 +190,11 @@ async def check_channels(bot: DeltaBot) -> None:
         client = get_client(bot)
         await client.connect()
         with session_scope() as session:
+            bot.logger.debug("Channels to check: %s", session.query(Channel).count())
             for chan in session.query(Channel):
                 try:
                     await check_channel(bot, client, chan)
+                    await asyncio.sleep(0.5)
                 except Exception as ex:
                     bot.logger.exception(ex)
     finally:
