@@ -177,7 +177,7 @@ async def listen_to_telegram(bot: DeltaBot) -> None:
             await check_channels(bot)
         except Exception as ex:
             bot.logger.exception(ex)
-        elapsed = time.time() - start
+        elapsed = int(time.time() - start)
         delay = max(int(getdefault(bot, "delay")) - elapsed, 30)
         bot.logger.debug(
             f"Done checking Telegram after {elapsed} seconds, sleeping for {delay} seconds..."
