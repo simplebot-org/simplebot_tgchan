@@ -86,9 +86,12 @@ async def _sub(bot: DeltaBot, payload: str, message: Message, replies: Replies) 
     chan = args[0].rsplit("/", maxsplit=1)[-1]
     if "/joinchat/" in args[0]:
         request = ImportChatInviteRequest
+    elif chan.startswith("+"):
+        request = ImportChatInviteRequest
+        chan = chan[1:]
     else:
         request = JoinChannelRequest
-        chan = chan.strip("@").replace(" ", "_")
+        chan = chan.lstrip("@").replace(" ", "_")
     filter_ = args[1] if len(args) == 2 else ""
 
     try:
