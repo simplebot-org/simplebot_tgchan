@@ -15,6 +15,7 @@ from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.types import PeerChannel
 
+from .instantview import blocks2html
 from .orm import Channel, Subscription, init, session_scope
 from .subcommands import login
 from .util import get_client, getdefault, set_config, sync
@@ -210,14 +211,14 @@ async def check_channel(bot: DeltaBot, client: TelegramClient, dbchan: Channel) 
     bot.logger.debug(f"Channel {channel.title!r} has {len(messages)} new messages")
     for message in messages:
         try:
-            await tg2dc(bot, message, dbchan)
+            await tg2dc(bot, client, message, dbchan)
         except Exception as ex:
             bot.logger.exception(ex)
         dbchan.last_msg = message.id
     await client.send_read_acknowledge(channel, messages)
 
 
-async def tg2dc(bot: DeltaBot, msg, dbchan: Channel) -> None:
+async def tg2dc(bot: DeltaBot, client: TelegramClient, msg, dbchan: Channel) -> None:
     if msg.text is None:
         return
     replies = Replies(bot, bot.logger)
@@ -228,7 +229,14 @@ async def tg2dc(bot: DeltaBot, msg, dbchan: Channel) -> None:
     with TemporaryDirectory() as tempdir:
         if msg.file and msg.file.size <= int(getdefault(bot, "max_size")):
             args["filename"] = await msg.download_media(tempdir)
-        if not msg.text and not args.get("filename"):
+        if msg.web_preview and msg.web_preview.cached_page:
+            args["html"] = await blocks2html(
+                msg.web_preview.cached_page.blocks,
+                client=client,
+                msg=msg,
+                logger=bot.logger,
+            )
+        if not any([args.get("text"), args.get("filename"), args.get("html")]):
             return
         for subs in dbchan.subscriptions:
             if subs.filter in msg.text:
