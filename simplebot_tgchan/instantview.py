@@ -23,10 +23,19 @@ async def _download_image(logger, client, img) -> str:
         return ""
 
 
-async def blocks2html(blocks: list, client=None, msg=None, logger=None) -> str:
+async def page2html(blocks: list, client=None, msg=None, logger=None) -> str:
+    html_text = await blocks2html(blocks, client=client, msg=msg, logger=logger)
+    return (
+        '<!DOCTYPE html><html><meta charset="UTF-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        f"</head><body>{html_text}</body></html>"
+    )
+
+
+async def blocks2html(blocks: list, **kwargs) -> str:
     html_text = ""
     for block in blocks:
-        html_text += await block2html(block, client=client, msg=msg, logger=logger)
+        html_text += await block2html(block, **kwargs)
     return html_text
 
 
@@ -246,7 +255,17 @@ async def PageBlockEmbedPost2HTML(block, **kwargs) -> str:
 
 
 async def PageBlockEmbed2HTML(block, **kwargs) -> str:  # noqa
-    return f'<video controls><source src="{block.url}"></video>' if block.url else ""
+    src = f'src="{block.url}"' if block.url else ""
+    srcdoc = f'srcdoc="{html.escape(block.html)}"' if block.html else ""
+    title = await block2html(block.caption, **kwargs)
+    style = ""
+    if block.full_width:
+        style += "width:100%;"
+    elif block.w:
+        style += f"width:{block.w};"
+    if block.h:
+        style += f"height:{block.h};"
+    return f'<iframe {src} {srcdoc} title="{title}" style="{style}"></iframe>'
 
 
 async def PageBlockAuthorDate2HTML(block, **kwargs) -> str:

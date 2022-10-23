@@ -15,7 +15,7 @@ from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.types import PeerChannel
 
-from .instantview import blocks2html
+from .instantview import page2html
 from .orm import Channel, Subscription, init, session_scope
 from .subcommands import login
 from .util import get_client, getdefault, set_config, sync
@@ -230,7 +230,7 @@ async def tg2dc(bot: DeltaBot, client: TelegramClient, msg, dbchan: Channel) -> 
         if msg.file and msg.file.size <= int(getdefault(bot, "max_size")):
             args["filename"] = await msg.download_media(tempdir)
         if msg.web_preview and msg.web_preview.cached_page:
-            args["html"] = await blocks2html(
+            args["html"] = await page2html(
                 msg.web_preview.cached_page.blocks,
                 client=client,
                 msg=msg,
