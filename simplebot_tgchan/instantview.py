@@ -33,7 +33,7 @@ async def blocks2html(blocks: list, client=None, msg=None, logger=None) -> str:
 
 
 async def block2html(block, **kwargs) -> str:
-    to_html = locals().get(type(block).__name__ + "2HTML")
+    to_html = globals().get(type(block).__name__ + "2HTML")
     return (await to_html(block, **kwargs)) if to_html else ""
 
 
