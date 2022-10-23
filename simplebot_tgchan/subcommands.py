@@ -26,7 +26,7 @@ class login:
         if "+" not in phone:
             out.fail("Phone number must include country code, example: +5312345678")
         try:
-            client = get_client(bot)
+            client = get_client(bot, session="")
             await client.connect()
             phone_code_hash = (await client.send_code_request(phone)).phone_code_hash
             out.line("You should receive a code from Telegram")

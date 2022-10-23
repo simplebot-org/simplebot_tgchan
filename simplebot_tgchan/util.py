@@ -30,10 +30,11 @@ def set_config(bot: DeltaBot, key: str, value: str = None) -> None:
     bot.set(key, value, scope=_scope)
 
 
-def get_client(bot: DeltaBot) -> TelegramClient:
+def get_client(bot: DeltaBot, session: str = None) -> TelegramClient:
     api_id = getdefault(bot, "api_id")
     api_hash = getdefault(bot, "api_hash")
-    session = getdefault(bot, "session")
+    if session is None:
+        session = getdefault(bot, "session")
     return TelegramClient(
         StringSession(session) if session else StringSession(),
         api_id=api_id,
