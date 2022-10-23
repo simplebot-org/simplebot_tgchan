@@ -221,9 +221,9 @@ async def PageBlockEmbedPost2HTML(block, **kwargs) -> str:
 
 
 async def PageBlockAuthorDate2HTML(block, **kwargs) -> str:
-    html_text = await block2html(block.author, **kwargs)
+    author = await block2html(block.author, **kwargs)
     date = block.published_date.strftime("%d/%m/%Y") if block.published_date else ""
-    html_text = " - ".join(text for text in [html_text, date] if text)
+    html_text = " - ".join(text for text in [date, author] if text)
     return f"<small>{html_text}</small>" if html_text else ""
 
 
@@ -239,7 +239,7 @@ async def PageBlockPhoto2HTML(block, **kwargs) -> str:
     photo = None
     try:
         if msg.web_preview.photo.id == block.photo_id:
-            photo = msg.media.webpage.photo
+            photo = msg.web_preview.photo
     except AttributeError:
         pass
     if not photo:
