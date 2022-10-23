@@ -2,7 +2,6 @@
 
 PageBlockMap
 PageBlockCollage
-PageBlockEmbed
 PageBlockRelatedArticles
 PageBlockSlideshow
 PageBlockChannel
@@ -244,6 +243,10 @@ async def PageTableCell2HTML(block, **kwargs) -> str:
 
 async def PageBlockEmbedPost2HTML(block, **kwargs) -> str:
     return await blocks2html(block.blocks, **kwargs)
+
+
+async def PageBlockEmbed2HTML(block, **kwargs) -> str:  # noqa
+    return f'<video controls><source src="{block.url}"></video>' if block.url else ""
 
 
 async def PageBlockAuthorDate2HTML(block, **kwargs) -> str:
