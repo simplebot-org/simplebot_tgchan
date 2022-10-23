@@ -257,4 +257,5 @@ async def PageBlockPhoto2HTML(block, **kwargs) -> str:
         img = await _download_image(kwargs["logger"], kwargs["client"], photo)
         html_text = f'<center><img src="data:image/png;base64,{img}" alt="COVER" style="width:100%"/></center>'
         html_text += await block2html(block.caption, **kwargs)
+        return html_text
     return ""
