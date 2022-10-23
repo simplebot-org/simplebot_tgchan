@@ -217,7 +217,7 @@ async def PageBlockDetails2HTML(block, **kwargs) -> str:
 async def PageBlockTable2HTML(block, **kwargs) -> str:
     title = await block2html(block.title, **kwargs)
     html_text = await blocks2html(block.rows, **kwargs)
-    border = 'border="1"' if block.border else ""
+    border = 'border="1"' if block.bordered else ""
     return f"<table {border}><caption>{title}</caption>{html_text}</table>"
 
 
