@@ -28,8 +28,8 @@ To install run::
 
   pip install simplebot-tgchan
 
-Configure
----------
+Configuration
+-------------
 
 See https://github.com/simplebot-org/simplebot to know how to configure the bot with an e-mail account.
 
@@ -47,8 +47,33 @@ After entering the verification code you received in Telegram or via SMS, start 
 
     simplebot -a bot@example.com serve
 
-Then you can start subscribing to Telegram channels with ``/sub`` command writting to the bot address
-in Delta Chat.
+Then you can start subscribing to Telegram channels adding the bot to Delta Chat groups and using
+``/sub`` command.
+
+Tweaking Default Configuration
+------------------------------
+
+You can tweak the interval (in seconds) the bot checks Telegram channels for new messages::
+
+    simplebot -a bot@example.com db -s simplebot_tgchan/delay 300
+
+By default the bot checks Telegram for new messages every 5 minutes.
+
+You can tweak the maximum size (in bytes) of attachments the bot will download::
+
+    simplebot -a bot@example.com db -s simplebot_tgchan/max_size 5242880
+
+By default the bot will download attachments of up to 5MB.
+
+You can restrict the usage of ``/sub`` and ``/unsub`` commands to bot administrators only::
+
+    simplebot -a bot@example.com db -s simplebot_tgchan/allow_subscriptions 0
+
+By default the bot will allow any user to subscribe to Telegram channels.
+
+To add your address as the bot administrator::
+
+    simplebot -a bot@example.com admin -a me@example.com
 
 
 .. _SimpleBot: https://github.com/simplebot-org/simplebot
