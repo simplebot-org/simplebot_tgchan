@@ -37,7 +37,7 @@ Before you start using the bot, you need to get your own API ID and hash, go to 
 and get them then configure the bot::
 
     simplebot -a bot@example.com db -s simplebot_tgchan/api_id "12345"
-    simplebot -a bot@example.com db -s simplebot_tgchan/api_hash "0123456789abcdef0123456789abcdef"
+    simplebot -a bot@example.com db -s simplebot_tgchan/api_hash "0123456789abcdef"
 
 Then you must provide a phone number for the bot to use, to start session in Telegram::
 
