@@ -21,8 +21,8 @@ Telegram Channels Bridge
 
 A `SimpleBot`_ plugin that allows to subscribe to Telegram channels from Delta Chat.
 
-Install
--------
+Installation
+------------
 
 To install run::
 
