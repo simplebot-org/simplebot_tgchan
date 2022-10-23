@@ -79,7 +79,7 @@ async def TextSuperscript2HTML(block, **kwargs) -> str:
 
 async def TextAnchor2HTML(block, **kwargs) -> str:
     html_text = await block2html(block.text, **kwargs)
-    return f'<div id="{block.name}">{html_text}</div>'
+    return f'<span id="{block.name}">{html_text}</span>'
 
 
 async def TextEmail2HTML(block, **kwargs) -> str:
@@ -205,7 +205,7 @@ async def PageBlockDivider2HTML(block, **kwargs) -> str:  # noqa
 
 
 async def PageBlockAnchor2HTML(block, **kwargs) -> str:  # noqa
-    return f'<div id="{block.name}"></div>'
+    return f'<span id="{block.name}"></span>'
 
 
 async def PageBlockDetails2HTML(block, **kwargs) -> str:
