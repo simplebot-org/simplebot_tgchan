@@ -4,7 +4,6 @@ PageBlockMap
 PageBlockCollage
 PageBlockEmbed
 PageBlockRelatedArticles
-PageBlockTable
 PageBlockSlideshow
 PageBlockChannel
 PageBlockAudio
@@ -214,6 +213,33 @@ async def PageBlockDetails2HTML(block, **kwargs) -> str:
     title = await block2html(block.title, **kwargs)
     html_text = await blocks2html(block.blocks, **kwargs)
     return f"<details><summary>{title}</summary>{html_text}</details>"
+
+
+async def PageBlockTable2HTML(block, **kwargs) -> str:
+    title = await block2html(block.title, **kwargs)
+    html_text = await blocks2html(block.rows, **kwargs)
+    border = 'border="1"' if block.border else ""
+    return f"<table {border}><caption>{title}</caption>{html_text}</table>"
+
+
+async def PageTableRow2HTML(block, **kwargs) -> str:
+    html_text = await blocks2html(block.cells, **kwargs)
+    return f"<tr>{html_text}</tr>"
+
+
+async def PageTableCell2HTML(block, **kwargs) -> str:
+    text = await block2html(block.text, **kwargs)
+    tag = "th" if block.header else "td"
+    style = ""
+    if block.align_center:
+        style += "text-align:center;"
+    elif block.align_right:
+        style += "text-align:right;"
+    if block.valign_middle:
+        style += "vertical-align:middle;"
+    elif block.valign_bottom:
+        style += "vertical-align:bottom;"
+    return f'<{tag} style="{style}" colspan="{block.colspan}" rowspan="{block.rowspan}">{text}</{tag}>'
 
 
 async def PageBlockEmbedPost2HTML(block, **kwargs) -> str:
