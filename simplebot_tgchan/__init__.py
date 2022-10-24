@@ -229,6 +229,8 @@ async def tg2dc(bot: DeltaBot, client: TelegramClient, msg, dbchan: Channel) -> 
     with TemporaryDirectory() as tempdir:
         if msg.file and msg.file.size <= int(getdefault(bot, "max_size")):
             args["filename"] = await msg.download_media(tempdir)
+            if args["filename"] and msg.sticker:
+                args["viewtype"] = "sticker"
         if msg.web_preview and msg.web_preview.cached_page:
             args["html"] = await page2html(
                 msg.web_preview.cached_page.blocks,
