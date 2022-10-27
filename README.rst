@@ -20,7 +20,8 @@ Telegram Channels Bridge
    :target: https://github.com/psf/black
 
 A `SimpleBot`_ plugin that allows to subscribe to Telegram channels from Delta Chat.
-> For bridging groups use: https://github.com/simplebot-org/simplebot_tggroups
+
+    For bridging groups use: https://github.com/simplebot-org/simplebot_tggroups
 
 Installation
 ------------
